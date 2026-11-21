@@ -1,0 +1,61 @@
+name: Build GalaxyDesktop APK
+
+on:
+  push:
+    branches: [ "main" ]
+  workflow_dispatch:
+
+permissions:
+  contents: write   # needed to publish GitHub Releases
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    env:
+      # Optional secret: base64 of a debug keystore, so every build has the same signature
+      # and can be installed over the previous one. See the notes in the chat.
+      DEBUG_KEYSTORE_B64: ${{ secrets.DEBUG_KEYSTORE_BASE64 }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '21'
+
+      - uses: android-actions/setup-android@v3
+
+      - name: Install Android SDK 36
+        run: sdkmanager "platforms;android-36" "build-tools;36.0.0"
+
+      # No gradlew in the repo, so install Gradle directly (matches gradle-wrapper.properties).
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: "8.11.1"
+
+      - name: Restore stable debug keystore
+        if: env.DEBUG_KEYSTORE_B64 != ''
+        run: |
+          mkdir -p ~/.android
+          echo "$DEBUG_KEYSTORE_B64" | base64 -d > ~/.android/debug.keystore
+
+      - name: Build debug APK
+        run: gradle assembleDebug --stacktrace
+
+      - name: Name the APK
+        run: cp app/build/outputs/apk/debug/app-debug.apk GalaxyDesktop.apk
+
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: GalaxyDesktop-Android16
+          path: GalaxyDesktop.apk
+
+      - name: Publish GitHub Release
+        if: github.event_name == 'push'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: build-${{ github.run_number }}
+          name: GalaxyDesktop build ${{ github.run_number }}
+          prerelease: true
+          files: GalaxyDesktop.apk

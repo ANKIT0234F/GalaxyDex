@@ -1,0 +1,102 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <!-- Overlay / window permissions -->
+    <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
+
+    <!-- Foreground service for DesktopMonitorService -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_CONNECTED_DEVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+
+    <!-- App drawer: list every launchable app -->
+    <uses-permission
+        android:name="android.permission.QUERY_ALL_PACKAGES"
+        tools:ignore="QueryAllPackagesPermission" />
+
+    <!-- Taskbar tray (Wi-Fi / battery readouts) -->
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
+    <!-- Prerequisite for foregroundServiceType=connectedDevice (Android 14+) -->
+    <uses-permission android:name="android.permission.CHANGE_NETWORK_STATE" />
+
+    <!-- Not grantable at install time. Granted once via Shizuku or
+         `adb shell pm grant com.samsung.galaxydesktop android.permission.WRITE_SECURE_SETTINGS` -->
+    <uses-permission
+        android:name="android.permission.WRITE_SECURE_SETTINGS"
+        tools:ignore="ProtectedPermissions" />
+
+    <!-- Shizuku API v13 -->
+    <uses-permission android:name="moe.shizuku.manager.permission.API_V23" />
+
+    <uses-feature android:name="android.software.freeform_window_management" android:required="false" />
+
+    <application
+        android:name=".GalaxyDesktopApp"
+        android:allowBackup="false"
+        android:icon="@android:drawable/sym_def_app_icon"
+        android:label="@string/app_name"
+        android:supportsRtl="true"
+        android:theme="@style/Theme.GalaxyDesktop">
+
+        <!-- Launcher entry: permission/setup wizard -->
+        <activity
+            android:name=".setup.SetupWizardActivity"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+
+        <!-- Phone-side trackpad (screen stays on, dimmed to black) -->
+        <activity
+            android:name=".input.TrackpadActivity"
+            android:exported="false"
+            android:launchMode="singleTask"
+            android:screenOrientation="userLandscape"
+            android:configChanges="orientation|screenSize|screenLayout|keyboardHidden" />
+
+        <!-- Watches DisplayManager, hosts the external-display Presentation -->
+        <service
+            android:name=".service.DesktopMonitorService"
+            android:exported="false"
+            android:foregroundServiceType="connectedDevice|specialUse">
+            <property
+                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+                android:value="Hosts a desktop-style UI on a connected external display" />
+        </service>
+
+        <!-- Injects clicks/scrolls onto the external display -->
+        <service
+            android:name=".input.CursorAccessibilityService"
+            android:exported="true"
+            android:label="@string/accessibility_service_label"
+            android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE">
+            <intent-filter>
+                <action android:name="android.accessibilityservice.AccessibilityService" />
+            </intent-filter>
+            <meta-data
+                android:name="android.accessibilityservice"
+                android:resource="@xml/accessibility_service_config" />
+        </service>
+
+        <!-- Shizuku binder delivery -->
+        <provider
+            android:name="rikka.shizuku.ShizukuProvider"
+            android:authorities="${applicationId}.shizuku"
+            android:enabled="true"
+            android:exported="true"
+            android:multiprocess="false"
+            android:permission="android.permission.INTERACT_ACROSS_USERS_FULL" />
+    </application>
+
+    <queries>
+        <intent>
+            <action android:name="android.intent.action.MAIN" />
+            <category android:name="android.intent.category.LAUNCHER" />
+        </intent>
+    </queries>
+</manifest>

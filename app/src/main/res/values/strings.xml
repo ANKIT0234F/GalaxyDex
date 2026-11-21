@@ -1,0 +1,5 @@
+<resources>
+    <string name="app_name">GalaxyDesktop</string>
+    <string name="accessibility_service_label">GalaxyDesktop Cursor</string>
+    <string name="accessibility_service_description">Lets the phone trackpad click and scroll in apps shown on your external display.</string>
+</resources>
